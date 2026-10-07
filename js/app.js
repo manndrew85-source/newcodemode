@@ -39,6 +39,17 @@
     return Math.round(done / total * 100);
   }
 
+  // Two-tap confirm: the first tap asks, the second tap (within 4s) does it. Works where confirm() is blocked.
+  function confirmTap(btn, question) {
+    if (btn.dataset.armed === '1') { btn.dataset.armed = ''; btn.textContent = btn.dataset.label; return true; }
+    btn.dataset.label = btn.dataset.label || btn.textContent;
+    btn.dataset.armed = '1';
+    btn.textContent = question;
+    clearTimeout(btn._t);
+    btn._t = setTimeout(() => { btn.dataset.armed = ''; btn.textContent = btn.dataset.label; }, 4000);
+    return false;
+  }
+
   function setTitle(t) { document.title = t ? `${t} · CodePath` : 'CodePath — Learn to Code'; }
 
   function render(html, { wide = false, title = '' } = {}) {
@@ -425,8 +436,8 @@
       return pg;
     });
 
-    document.getElementById('clear').addEventListener('click', () => {
-      if (!confirm('Clear all your answers for this test?')) return;
+    document.getElementById('clear').addEventListener('click', e => {
+      if (!confirmTap(e.currentTarget, 'Tap again to clear all answers')) return;
       Progress.clearDraft(c);
       test(c);
     });
@@ -434,7 +445,7 @@
     document.getElementById('submit').addEventListener('click', async () => {
       const btn = document.getElementById('submit');
       const unanswered = T.mc.filter((_, qi) => draft.mc[qi] === undefined).length;
-      if (unanswered && !confirm(`You have ${unanswered} unanswered multiple-choice question(s). Submit anyway?`)) return;
+      if (unanswered && !confirmTap(btn, `${unanswered} unanswered. Tap again to submit`)) return;
       btn.disabled = true; btn.textContent = 'Grading…';
       let correct = 0;
       T.mc.forEach((q, qi) => {
@@ -486,7 +497,8 @@
       <div class="crumbs no-print"><a href="#/course/${c}">${esc(C.title)}</a> › Certificate</div>
       <div class="card no-print" style="margin-bottom:14px">
         <label class="field" for="nm">Name on certificate</label>
-        <div class="row"><input class="input" id="nm" style="flex:1" value="${esc(Progress.name)}" placeholder="Your full name"><button class="btn primary" id="print" type="button">🖨️ Print / Save PDF</button></div>
+        <div class="row"><input class="input" id="nm" style="flex:1" value="${esc(Progress.name)}" placeholder="Your full name">${window.self === window.top ? '<button class="btn primary" id="print" type="button">🖨️ Print / Save PDF</button>' : ''}</div>
+        ${window.self === window.top ? '' : '<p class="small muted" style="margin:8px 0 0">To print or save as PDF, open the installed app (from GitHub Pages) or take a screenshot.</p>'}
       </div>
       <div class="cert">
         <div class="seal">🏆</div>
@@ -505,7 +517,8 @@
       </div>`, { title: 'Certificate' });
     const nm = document.getElementById('nm');
     nm.addEventListener('input', () => { Progress.name = nm.value.trim(); document.getElementById('certName').textContent = nm.value.trim() || 'Your Name'; });
-    document.getElementById('print').addEventListener('click', () => window.print());
+    const pb = document.getElementById('print');
+    if (pb) pb.addEventListener('click', () => window.print());
   }
 
   function profile() {
@@ -541,8 +554,8 @@
     const nm = document.getElementById('nm');
     nm.addEventListener('input', () => { Progress.name = nm.value.trim(); });
     document.getElementById('theme').addEventListener('change', e => { Progress.theme = e.target.value; applyTheme(); });
-    document.getElementById('reset').addEventListener('click', () => {
-      if (confirm('Erase all lessons, quiz scores and test scores? This cannot be undone.')) { Progress.reset(); profile(); }
+    document.getElementById('reset').addEventListener('click', e => {
+      if (confirmTap(e.currentTarget, 'Tap again to erase everything (can\'t be undone)')) { Progress.reset(); profile(); }
     });
   }
 
