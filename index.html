@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CodePath — Learn to Code</title>
+  <meta name="description" content="Learn HTML, CSS and JavaScript with beginner, intermediate and advanced courses, quizzes, tests and a live code editor.">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="CodePath">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/">
+      <img src="icons/icon.svg" alt="" width="28" height="28">
+      <span>CodePath</span>
+    </a>
+    <nav class="topnav">
+      <a href="#/intro">Intro</a>
+      <a href="#/course/beginner">Beginner</a>
+      <a href="#/course/intermediate">Intermediate</a>
+      <a href="#/course/advanced">Advanced</a>
+      <a href="#/profile" aria-label="Profile and settings">Profile</a>
+    </nav>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">🌓</button>
+  </header>
+
+  <main id="app" tabindex="-1"></main>
+
+  <nav class="bottomnav" aria-label="Main">
+    <a href="#/"><span>🏠</span>Home</a>
+    <a href="#/intro"><span>🧭</span>Intro</a>
+    <a href="#/courses"><span>📚</span>Courses</a>
+    <a href="#/profile"><span>👤</span>Profile</a>
+  </nav>
+
+  <script src="js/progress.js"></script>
+  <script src="js/pics.js"></script>
+  <script src="js/runner.js"></script>
+  <script src="js/content/intro.js"></script>
+  <script src="js/content/beginner.js"></script>
+  <script src="js/content/intermediate.js"></script>
+  <script src="js/content/advanced.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
