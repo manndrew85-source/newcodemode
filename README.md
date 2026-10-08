@@ -2,7 +2,7 @@
 
 An installable learn-to-code app for **phone and computer**. It teaches HTML, CSS and JavaScript through three courses, with illustrated lessons, a live code editor, pop quizzes and final tests that auto-grade your code.
 
-**Live app:** https://manndrew85-source.github.io/codepath-learn-to-code/
+**Live app:** https://manndrew85-source.github.io/newcodemode/
 
 ![Lesson with diagram](docs/lesson.png)
 
