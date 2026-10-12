@@ -17,6 +17,8 @@
   --beginner: #ea580c;
   --intermediate: #0284c7;
   --advanced: #7c3aed;
+  --react: #0e7490;
+  --capstone: #be185d;
   --code-bg: #1e1f2e;
   --code-text: #e6e7f2;
   /* diagram tokens */
@@ -41,7 +43,7 @@
     --bg: #12131c; --surface: #1b1c28; --surface-2: #252736; --text: #ecedf6; --muted: #a3a6bd;
     --border: #33364a; --accent: #8b85ff; --accent-soft: #2c2a55; --accent-text: #12131c;
     --good: #4ade80; --good-soft: #143322; --bad: #f87171; --bad-soft: #3b1717; --warn: #facc15;
-    --beginner: #fb923c; --intermediate: #38bdf8; --advanced: #a78bfa;
+    --beginner: #fb923c; --intermediate: #38bdf8; --advanced: #a78bfa; --react: #22d3ee; --capstone: #f472b6;
     --d-fill: #1b1c28; --d-fill-2: #252736; --d-stroke: #5b5f7e;
     --d-a: #8b85ff; --d-a-soft: #2c2a55; --d-b: #fb923c; --d-b-soft: #3d2513;
     --d-c: #2dd4bf; --d-c-soft: #0f3330; --d-d: #f472b6; --d-d-soft: #3d1530;
@@ -53,7 +55,7 @@
   --bg: #12131c; --surface: #1b1c28; --surface-2: #252736; --text: #ecedf6; --muted: #a3a6bd;
   --border: #33364a; --accent: #8b85ff; --accent-soft: #2c2a55; --accent-text: #12131c;
   --good: #4ade80; --good-soft: #143322; --bad: #f87171; --bad-soft: #3b1717; --warn: #facc15;
-  --beginner: #fb923c; --intermediate: #38bdf8; --advanced: #a78bfa;
+  --beginner: #fb923c; --intermediate: #38bdf8; --advanced: #a78bfa; --react: #22d3ee; --capstone: #f472b6;
   --d-fill: #1b1c28; --d-fill-2: #252736; --d-stroke: #5b5f7e;
   --d-a: #8b85ff; --d-a-soft: #2c2a55; --d-b: #fb923c; --d-b-soft: #3d2513;
   --d-c: #2dd4bf; --d-c-soft: #0f3330; --d-d: #f472b6; --d-d-soft: #3d1530;
@@ -246,6 +248,7 @@ table.simple th { background: var(--surface-2); }
 .pg-out .out-label { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 6px 12px 0; }
 .pg-out iframe { border: 0; width: 100%; flex: 1; min-height: 180px; background: #fff; }
 .pg-out iframe.hidden { display: none; }
+.playground.tall .pg-out iframe { min-height: 520px; }
 .console {
   font: 13.5px/1.5 var(--mono); padding: 8px 12px; margin: 0; white-space: pre-wrap; word-break: break-word;
   min-height: 60px; max-height: 260px; overflow: auto; color: var(--text);

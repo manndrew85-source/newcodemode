@@ -3,6 +3,13 @@ const Runner = (() => {
   let counter = 0;
   const listeners = new Map();
 
+  // React + Babel live in vendor/ so lessons work offline. A host page can override with window.CODEPATH_VENDOR.
+  const VENDOR = window.CODEPATH_VENDOR || {
+    react: new URL('vendor/react-18.3.1.development.js', document.baseURI).href,
+    reactDom: new URL('vendor/react-dom-18.3.1.development.js', document.baseURI).href,
+    babel: new URL('vendor/babel-standalone-7.24.7.min.js', document.baseURI).href
+  };
+
   window.addEventListener('message', e => {
     const d = e.data;
     if (!d || typeof d.__cp !== 'string') return;
@@ -35,6 +42,14 @@ const Runner = (() => {
       window.__logs = []; window.__errors = [];
       ${FORMAT}
       window.__fmt = __fmt;
+      // Helpers for automated checks
+      window.__tick = function(ms){ return new Promise(function(r){ setTimeout(r, ms || 40); }); };
+      window.__type = function(el, text){
+        var proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+        Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, text);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      };
       // Sandboxed previews can't use real storage, so lessons get an in-memory stand-in.
       try { window.localStorage.getItem('x'); } catch (e) {
         var mem = {};
@@ -51,7 +66,20 @@ const Runner = (() => {
       ['log','info','warn','error'].forEach(function(k){
         var orig = console[k];
         console[k] = function(){
-          var line = Array.prototype.map.call(arguments, function(a){ return __fmt(a); }).join(' ');
+          var args = Array.prototype.slice.call(arguments);
+          // printf-style %s/%d/%o like real consoles (React's warnings use these)
+          if (typeof args[0] === 'string' && /%[sdioOc]/.test(args[0])) {
+            var rest = args.slice(1);
+            var first = args[0].replace(/%([sdioOc])/g, function(m, t){
+              if (!rest.length) return m;
+              var v = rest.shift();
+              return t === 'c' ? '' : __fmt(v);
+            });
+            args = [first].concat(rest);
+          }
+          var line = args.map(function(a){ return __fmt(a); }).join(' ').trimEnd();
+          // drop "    at Component" stack lines from React warnings
+          line = line.split('\\n').filter(function(l){ return !(l !== l.trimStart() && l.trimStart().indexOf('at ') === 0); }).join('\\n').trimEnd();
           __logs.push(line);
           parent.postMessage({__cp: ID, type: 'log', level: k, text: line}, '*');
           try { orig.apply(console, arguments); } catch (e) {}
@@ -74,7 +102,7 @@ const Runner = (() => {
     })();<\/script>`;
   }
 
-  function checksScript(id, tests) {
+  function checksScript(id, tests, delay) {
     const fns = (tests || []).map(t => `async function(){ ${t.test} }`).join(',\n');
     return `<script>
       setTimeout(async function(){
@@ -90,7 +118,7 @@ const Runner = (() => {
           }
         }
         parent.postMessage({__cp: ID, type: 'done', results: results}, '*');
-      }, 30);
+      }, ${delay || 30});
     <\/script>`;
   }
 
@@ -127,23 +155,57 @@ const Runner = (() => {
 
   const safeScript = s => s.replace(/<\/script/gi, '<\\/script');
 
+  // Loader that compiles each <script type="text/babel"> with Babel, adds the loop guard, then runs it.
+  function babelLoader() {
+    return `<script>(function(){
+      var guard = ${guardLoops.toString()};
+      var blocks = document.querySelectorAll('script[type="text/x-codepath-babel"]');
+      for (var i = 0; i < blocks.length; i++) {
+        var out;
+        try {
+          out = Babel.transform(blocks[i].textContent, { presets: ['react'], filename: 'App.jsx' }).code;
+        } catch (e) {
+          var msg = String(e.message || e).replace(/^.*?App\.jsx: /, '').split('\\n').slice(0, 8).join('\\n');
+          console.error('SyntaxError: ' + msg);
+          continue;
+        }
+        var el = document.createElement('script');
+        el.textContent = guard(out);
+        blocks[i].after(el);
+      }
+    })();<\/script>`;
+  }
+
   function buildDoc(lang, code, id, tests) {
     const cap = captureScript(id);
-    const chk = checksScript(id, tests);
+    const chk = checksScript(id, tests, lang === 'react' ? 150 : 30);
+    if (lang === 'react') {
+      const libs = `<script src="${VENDOR.react}"><\/script><script src="${VENDOR.reactDom}"><\/script><script src="${VENDOR.babel}"><\/script>`;
+      const base = `<style>body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:12px;color:#1c1d29;background:#fff}</style>`;
+      let doc = code
+        // React/Babel <script src> tags are for self-hosting; the sandbox uses the bundled copies instead
+        .replace(/<script[^>]+src=["'][^"']*(react|babel)[^"']*["'][^>]*>\s*<\/script>/gi, '')
+        .replace(/<script([^>]*)type=["']text\/babel["']([^>]*)>/gi, '<script$1type="text/x-codepath-babel"$2>');
+      if (/<head(\s[^>]*)?>/i.test(doc)) doc = doc.replace(/<head(\s[^>]*)?>/i, m => m + '<meta charset="utf-8">' + cap + base + libs);
+      else if (/<!doctype[^>]*>/i.test(doc)) doc = doc.replace(/<!doctype[^>]*>/i, m => m + cap + base + libs);
+      else doc = '<!doctype html><meta charset="utf-8">' + cap + base + libs + doc;
+      return doc + babelLoader() + chk;
+    }
     if (lang === 'js') {
       return `<!doctype html><html><head><meta charset="utf-8"></head><body>${cap}<script>${safeScript(guardLoops(code))}\n<\/script>${chk}</body></html>`;
     }
     // html (may include <style> and <script>)
     const base = `<style>body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:12px;color:#1c1d29;background:#fff}</style>`;
     let doc = code;
-    if (/<head[^>]*>/i.test(doc)) doc = doc.replace(/<head[^>]*>/i, m => m + '<meta charset="utf-8">' + cap + base);
+    if (/<head(\s[^>]*)?>/i.test(doc)) doc = doc.replace(/<head(\s[^>]*)?>/i, m => m + '<meta charset="utf-8">' + cap + base);
     else if (/<!doctype[^>]*>/i.test(doc)) doc = doc.replace(/<!doctype[^>]*>/i, m => m + cap + base);
     else doc = '<!doctype html><meta charset="utf-8">' + cap + base + doc;
     return doc + chk;
   }
 
   /**
-   * run({ lang: 'html'|'js', code, tests, container, onLog, onError, timeout })
+   * run({ lang: 'html'|'js'|'react', code, tests, container, onLog, onError, timeout })
+   * tests: [{ name, test }] run inside the page; [{ name, src, flags, min, not }] check the source code with a regex.
    * container: element to put the iframe in (visible for html). Previous iframe in it is replaced.
    * Resolves with { results, logs, errors, timedOut }.
    */
@@ -162,10 +224,25 @@ const Runner = (() => {
 
     return new Promise(resolve => {
       let finished = false;
+      const all = opts.tests || [];
       const finish = (results, timedOut) => {
         if (finished) return;
         finished = true;
-        resolve({ results: results || [], logs, errors, timedOut: !!timedOut });
+        const pageResults = results || [];
+        let k = 0;
+        // code checks ignore comments, so a TODO that mentions .map() doesn't count as using it
+        const codeOnly = opts.code
+          .replace(/<!--[\s\S]*?-->/g, '')
+          .replace(/\/\*[\s\S]*?\*\//g, '')
+          .replace(/(^|[^:"'\\])\/\/.*$/gm, '$1');
+        const merged = all.length ? all.map(t => {
+          if (t.src) {
+            const n = (codeOnly.match(new RegExp(t.src, (t.flags || '') + 'g')) || []).length;
+            return { pass: t.not ? n === 0 : n >= (t.min || 1) };
+          }
+          return pageResults[k++] || { pass: false, error: timedOut ? 'Took too long' : undefined };
+        }) : pageResults;
+        resolve({ results: merged, logs, errors, timedOut: !!timedOut });
       };
       listeners.set(id, (d, source) => {
         if (source !== frame.contentWindow) return;
@@ -173,8 +250,8 @@ const Runner = (() => {
         else if (d.type === 'error') { errors.push(d.text); opts.onError && opts.onError(d.text); }
         else if (d.type === 'done') finish(d.results);
       });
-      setTimeout(() => finish(null, true), opts.timeout || 6000);
-      frame.srcdoc = buildDoc(opts.lang, opts.code, id, opts.tests);
+      setTimeout(() => finish(null, true), opts.timeout || (opts.lang === 'react' ? 10000 : 6000));
+      frame.srcdoc = buildDoc(opts.lang, opts.code, id, all.filter(t => !t.src));
       container.appendChild(frame);
     });
   }

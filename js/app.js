@@ -1,7 +1,7 @@
 // CodePath — main app: routing and screens.
 (() => {
   const app = document.getElementById('app');
-  const COURSE_IDS = ['beginner', 'intermediate', 'advanced'];
+  const COURSE_IDS = ['beginner', 'intermediate', 'advanced', 'react', 'capstone'];
   const QUIZ_PASS = 60;
   const TEST_PASS = 70;
   const LETTERS = 'ABCDEFGH';
@@ -24,8 +24,18 @@
   const colorVars = id => `--c: var(--${id}); --c-soft: color-mix(in srgb, var(--${id}) 16%, var(--surface));`;
   const pic = (name, cap) => name ? `<figure class="pic"><div class="pic-label">📷 Picture it${innerWidth < 600 ? ' <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:600">· swipe to see all →</span>' : ''}</div><div class="pic-scroll">${Pics.get(name)}</div>${cap ? `<figcaption>${md(cap)}</figcaption>` : ''}</figure>` : '';
 
-  const unitUnlocked = (c, u) => u === 0 || (Progress.quizScore(c, u - 1) || 0) >= QUIZ_PASS;
-  const testUnlocked = c => course(c).units.every((_, u) => (Progress.quizScore(c, u) || 0) >= QUIZ_PASS);
+  // ---------- capstone project helpers ----------
+  const isProject = c => !!(course(c) && course(c).project);
+  const isUrl = v => /^https?:\/\/[^\s.]+\.[^\s]+$/i.test((v || '').trim());
+  const SHIP_UNIT = 4; // the last capstone unit is checked by the launch checklist, not code checks
+  const unitReqs = (c, u) => course(c).requirements.filter(r => r.unit === u);
+  const selfDone = c => course(c).selfReview.every((_, i) => Progress.project.self[i]) && isUrl(Progress.project.url);
+  const milestoneDone = (c, u) => !isProject(c) || (u === SHIP_UNIT ? selfDone(c) : !!Progress.project.milestones[u]);
+
+  const quizPassed = (c, u) => (Progress.quizScore(c, u) || 0) >= QUIZ_PASS;
+  const unitComplete = (c, u) => quizPassed(c, u) && milestoneDone(c, u);
+  const unitUnlocked = (c, u) => u === 0 || unitComplete(c, u - 1);
+  const testUnlocked = c => course(c).units.every((_, u) => unitComplete(c, u));
   const testPassed = c => { const t = Progress.testScore(c); return t && t.best >= TEST_PASS; };
 
   function courseProgress(c) {
@@ -33,7 +43,8 @@
     let total = 0, done = 0;
     C.units.forEach((unit, u) => {
       unit.lessons.forEach((_, l) => { total++; if (Progress.lessonDone(c, u, l)) done++; });
-      total++; if ((Progress.quizScore(c, u) || 0) >= QUIZ_PASS) done++;
+      total++; if (quizPassed(c, u)) done++;
+      if (C.project) { total++; if (milestoneDone(c, u)) done++; }
     });
     total += 2; if (testPassed(c)) done += 2;
     return Math.round(done / total * 100);
@@ -60,15 +71,20 @@
   }
 
   // ---------- code playground ----------
-  function playground({ code, lang = 'html', title = 'Try it yourself', tests = null, autorun = true, onChange = null, runLabel = null }) {
+  const LANG_LABEL = { js: 'JavaScript', html: 'HTML / CSS', react: 'React (JSX)' };
+
+  // checkLabel: adds a separate button that runs the tests (Run then only previews).
+  // onResult(res) is called after every test run. maxHeight sets how tall the editor may grow.
+  function playground({ code, lang = 'html', title = 'Try it yourself', tests = null, autorun = true, onChange = null, runLabel = null, checkLabel = null, onResult = null, maxHeight = 520, resetCode = null }) {
     const el = h(`
-      <div class="playground">
+      <div class="playground ${maxHeight > 520 ? 'tall' : ''}">
         <div class="pg-head">
           <span class="title">${esc(title)}</span>
-          <span class="lang">${lang === 'js' ? 'JavaScript' : 'HTML / CSS'}</span>
+          <span class="lang">${LANG_LABEL[lang] || lang}</span>
           <span class="spacer"></span>
           <button class="btn small" data-act="reset" type="button">↺ Reset</button>
-          <button class="btn small primary" data-act="run" type="button">${runLabel || '▶ Run'}</button>
+          <button class="btn small ${checkLabel ? '' : 'primary'}" data-act="run" type="button">${runLabel || '▶ Run'}</button>
+          ${checkLabel ? `<button class="btn small primary" data-act="check" type="button">${esc(checkLabel)}</button>` : ''}
         </div>
         <div class="pg-body">
           <textarea class="pg-editor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Code editor"></textarea>
@@ -85,7 +101,7 @@
     const con = el.querySelector('.console');
     const checks = el.querySelector('.checks');
     ta.value = code;
-    const fit = () => { ta.style.height = 'auto'; ta.style.height = Math.min(Math.max(ta.scrollHeight + 4, 200), 520) + 'px'; };
+    const fit = () => { ta.style.height = 'auto'; ta.style.height = Math.min(Math.max(ta.scrollHeight + 4, 200), maxHeight) + 'px'; };
 
     const line = (text, cls) => {
       if (lang !== 'js') con.hidden = false;
@@ -117,10 +133,11 @@
         checks.innerHTML = tests.map((t, i) => {
           const r = res.results[i];
           const ok = r && r.pass;
-          return `<li class="${ok ? 'pass' : 'fail'}">${mdInline(t.name)}${!ok && r && r.error ? ` <span class="muted small">(${esc(r.error)})</span>` : ''}</li>`;
+          return `<li class="${ok ? 'pass' : 'fail'}">${mdInline(t.name)}${!ok && r && r.error ? ` <span class="muted small">(${esc(r.error)})</span>` : ''}${!ok && t.hint ? `<div class="muted small">💡 ${mdInline(t.hint)}</div>` : ''}</li>`;
         }).join('');
       }
       const passed = !!(tests && res.results.length === tests.length && res.results.every(r => r.pass));
+      if (withTests && tests && onResult) onResult({ ...res, passed });
       return { ...res, passed };
     }
 
@@ -131,12 +148,17 @@
         ta.value = ta.value.slice(0, s) + '  ' + ta.value.slice(en);
         ta.selectionStart = ta.selectionEnd = s + 2;
       } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault(); run(!!tests);
+        e.preventDefault(); run(!!tests && !checkLabel);
       }
     });
     ta.addEventListener('input', () => { fit(); onChange && onChange(ta.value); });
-    el.querySelector('[data-act=run]').addEventListener('click', () => run(!!tests));
-    el.querySelector('[data-act=reset]').addEventListener('click', () => { ta.value = code; fit(); onChange && onChange(code); run(false); });
+    el.querySelector('[data-act=run]').addEventListener('click', () => run(!!tests && !checkLabel));
+    if (checkLabel) el.querySelector('[data-act=check]').addEventListener('click', () => run(true));
+    const resetTo = resetCode === null ? code : resetCode;
+    el.querySelector('[data-act=reset]').addEventListener('click', e => {
+      if (resetCode !== null && !confirmTap(e.currentTarget, 'Tap again to start over')) return;
+      ta.value = resetTo; fit(); onChange && onChange(resetTo); run(false);
+    });
     requestAnimationFrame(fit);
     if (autorun) setTimeout(() => run(false), 50);
     else if (lang === 'js') line('Press ▶ Run to see the output.', 'note');
@@ -166,15 +188,16 @@
         if (!unitUnlocked(c, u)) break;
         const l = C.units[u].lessons.findIndex((_, i) => !Progress.lessonDone(c, u, i));
         if (l >= 0) next = { href: `#/lesson/${c}/${u}/${l}`, label: `${C.title} · Unit ${u + 1}: ${C.units[u].lessons[l].title}` };
-        else if ((Progress.quizScore(c, u) || 0) < QUIZ_PASS) next = { href: `#/quiz/${c}/${u}`, label: `${C.title} · Unit ${u + 1} pop quiz` };
+        else if (!quizPassed(c, u)) next = { href: `#/quiz/${c}/${u}`, label: `${C.title} · Unit ${u + 1} pop quiz` };
+        else if (!milestoneDone(c, u)) next = { href: `#/project/${u}`, label: `${C.title} · Unit ${u + 1} milestone` };
       }
-      if (!next && testUnlocked(c) && !testPassed(c)) next = { href: `#/test/${c}`, label: `${C.title} · Final test` };
+      if (!next && testUnlocked(c) && !testPassed(c)) next = { href: `#/test/${c}`, label: `${C.title} · ${C.project ? 'Project review' : 'Final test'}` };
       if (next) break;
     }
     render(`
       <section class="hero">
         <h1>${Progress.name ? `Welcome back, ${esc(Progress.name)}!` : 'Learn to code, one step at a time.'}</h1>
-        <p>Three courses — HTML &amp; CSS, then JavaScript — with pictures, a live code editor, pop quizzes and final tests. Works on your phone and your computer.</p>
+        <p>HTML &amp; CSS, JavaScript and React — with pictures, a live code editor, pop quizzes and final tests — then a capstone project you build and put online. Works on your phone and your computer.</p>
         <div class="row">
           ${started && next ? `<a class="btn" href="${next.href}">▶ Continue</a>` : `<a class="btn" href="#/intro">▶ Start with the Introduction</a>`}
           <a class="btn ghost" href="#/course/beginner">Go to Beginner</a>
@@ -183,7 +206,7 @@
       </section>
       <h2>Your courses</h2>
       <div class="grid cols-3">${COURSE_IDS.map(courseCard).join('')}</div>
-      ${pic('roadmap', 'Your path: set up your computer, then work through each course in order. Each one ends with a final test and a certificate.')}
+      ${pic('roadmap', 'Your path: set up your computer, work through each course in order, then prove it all with your capstone app.')}
       <div class="card">
         <h3 style="margin-top:0">📱 Install CodePath as an app</h3>
         <p class="small muted" style="margin:0"><b>iPhone:</b> Safari → Share → <i>Add to Home Screen</i>. <b>Android:</b> Chrome menu ⋮ → <i>Install app</i>. <b>Computer:</b> Chrome/Edge → the install icon in the address bar. Your progress is saved on each device.</p>
@@ -232,7 +255,8 @@
                 <a class="btn small" href="#/recap/${c}/${u}">📝 Recap</a>
                 <a class="btn small" href="#/quiz/${c}/${u}">❓ Pop quiz</a>
                 ${q !== undefined ? `<span class="badge ${q >= QUIZ_PASS ? 'good' : 'bad'}">Best: ${q}%</span>` : ''}
-              </div>` : `<p class="small muted" style="margin:.5em 0 0">Pass the Unit ${u} pop quiz (${QUIZ_PASS}%+) to unlock.</p>`}
+                ${C.project ? `<a class="btn small" href="#/project/${u}">🛠️ Milestone</a><span class="badge ${milestoneDone(c, u) ? 'good' : ''}">${milestoneDone(c, u) ? 'Milestone ✓' : 'Milestone to do'}</span>` : ''}
+              </div>` : `<p class="small muted" style="margin:.5em 0 0">Pass the Unit ${u} pop quiz (${QUIZ_PASS}%+)${C.project ? ' and finish its milestone' : ''} to unlock.</p>`}
           </div>
         </div>`;
     }).join('');
@@ -244,15 +268,15 @@
         <h1>${esc(C.title)}</h1>
         <p class="lesson-body">${md(C.description)}</p>
         <div class="progressbar"><div style="width:${courseProgress(c)}%"></div></div>
-        ${pic('unitFlow', 'How every unit works: read the lessons (with pictures and live code), review the recap, then take the 5-question pop quiz.')}
+        ${C.project ? projectCard() : pic('unitFlow', 'How every unit works: read the lessons (with pictures and live code), review the recap, then take the 5-question pop quiz.')}
         <div class="stack">${units}</div>
         <div class="unit ${tOpen ? '' : 'locked'}" style="margin-top:14px">
           <div class="num">${tOpen ? '🎓' : '🔒'}</div>
           <div style="flex:1">
-            <h3>Final test</h3>
-            <div class="small muted">${C.test.mc.length} multiple-choice + ${C.test.fix.length} fix-the-broken-code questions. Pass with ${TEST_PASS}% to earn your certificate.</div>
+            <h3>${C.project ? 'Project review' : 'Final test'}</h3>
+            <div class="small muted">${C.project ? `All ${C.requirements.length} requirements are checked on your app, plus your launch checklist and live link. Pass to earn your capstone certificate.` : `${C.test.mc.length} multiple-choice + ${C.test.fix.length} fix-the-broken-code questions. Pass with ${TEST_PASS}% to earn your certificate.`}</div>
             <div class="row" style="margin-top:10px">
-              ${tOpen ? `<a class="btn small primary" href="#/test/${c}">Take the test</a>` : `<span class="small muted">Pass all 5 pop quizzes to unlock.</span>`}
+              ${tOpen ? `<a class="btn small primary" href="#/test/${c}">${C.project ? 'Start the review' : 'Take the test'}</a>` : `<span class="small muted">${C.project ? 'Finish all 5 units (quizzes and milestones) to unlock.' : 'Pass all 5 pop quizzes to unlock.'}</span>`}
               ${tScore ? `<span class="badge ${tScore.best >= TEST_PASS ? 'good' : 'bad'}">Best: ${tScore.best}%</span>` : ''}
               ${testPassed(c) ? `<a class="btn small" href="#/cert/${c}">🏆 Certificate</a>` : ''}
             </div>
@@ -262,8 +286,11 @@
   }
 
   function lockedView(c, u) {
-    render(`<div class="card center"><h1>🔒 Locked</h1><p>Pass the Unit ${u} pop quiz with ${QUIZ_PASS}% or more to open this unit.</p>
-      <a class="btn primary" href="#/quiz/${c}/${u - 1}">Take Unit ${u} quiz</a> <a class="btn" href="#/course/${c}">Back to course</a></div>`, { title: 'Locked' });
+    const needMilestone = isProject(c) && quizPassed(c, u - 1) && !milestoneDone(c, u - 1);
+    render(`<div class="card center"><h1>🔒 Locked</h1>
+      <p>${needMilestone ? `Finish the Unit ${u} milestone in your project workspace to open this unit.` : `Pass the Unit ${u} pop quiz with ${QUIZ_PASS}% or more${isProject(c) ? ' and finish its milestone' : ''} to open this unit.`}</p>
+      ${needMilestone ? `<a class="btn primary" href="#/project/${u - 1}">🛠️ Open Unit ${u} milestone</a>` : `<a class="btn primary" href="#/quiz/${c}/${u - 1}">Take Unit ${u} quiz</a>`}
+      <a class="btn" href="#/course/${c}">Back to course</a></div>`, { title: 'Locked' });
   }
 
   function lesson(c, u, l) {
@@ -282,6 +309,7 @@
       ${pic(L.pic, L.cap)}
       <div id="pg"></div>
       ${L.after ? `<div class="lesson-body">${md(L.after)}</div>` : ''}
+      ${C.project && last ? `<div class="callout"><b>🛠️ Unit ${u + 1} milestone:</b> ${unit.milestone}<div class="row" style="margin-top:10px"><a class="btn primary small" href="#/project/${u}">Open project workspace</a></div></div>` : ''}
       <div class="row" style="margin-top:20px">
         <a class="btn" href="${prevHref}">← Back</a>
         <span class="spacer"></span>
@@ -361,10 +389,10 @@
           <p>${score} of ${qs.length} correct. ${pass ? (pct === 100 ? 'Perfect score! 🎉' : 'Nice work — you passed! 🎉') : `You need ${QUIZ_PASS}% to unlock the next step. Review the recap and try again — you've got this.`}</p>
           <div class="row" style="justify-content:center">
             <button class="btn" id="retry" type="button">↺ Retry quiz</button>
-            ${pass ? (lastUnit
-              ? (testUnlocked(c) ? `<a class="btn primary" href="#/test/${c}">Go to the final test →</a>` : `<a class="btn primary" href="#/course/${c}">Back to course</a>`)
-              : `<a class="btn primary" href="#/lesson/${c}/${u + 1}/0">Start Unit ${u + 2} →</a>`)
-              : `<a class="btn primary" href="#/recap/${c}/${u}">Review recap</a>`}
+            ${!pass ? `<a class="btn primary" href="#/recap/${c}/${u}">Review recap</a>`
+              : !milestoneDone(c, u) ? `<a class="btn primary" href="#/project/${u}">🛠️ Now finish the Unit ${u + 1} milestone →</a>`
+              : lastUnit ? (testUnlocked(c) ? `<a class="btn primary" href="#/test/${c}">Go to the ${C.project ? 'project review' : 'final test'} →</a>` : `<a class="btn primary" href="#/course/${c}">Back to course</a>`)
+              : `<a class="btn primary" href="#/lesson/${c}/${u + 1}/0">Start Unit ${u + 2} →</a>`}
           </div>
         </div>`, { title: 'Quiz result' });
       document.getElementById('retry').addEventListener('click', () => { i = 0; score = 0; show(); });
@@ -375,6 +403,7 @@
   function test(c) {
     const C = course(c);
     if (!C) return notFound();
+    if (C.project) return projectReview(c);
     if (!testUnlocked(c)) {
       return render(`<div class="card center"><h1>🔒 Final test locked</h1><p>Pass all 5 unit pop quizzes (${QUIZ_PASS}%+) to unlock the ${esc(C.title)} final test.</p><a class="btn primary" href="#/course/${c}">Back to course</a></div>`, { title: 'Locked' });
     }
@@ -485,13 +514,246 @@
     });
   }
 
+  // ---------- capstone project screens ----------
+  const CAP = 'capstone';
+  const starterOf = () => course(CAP).starters.find(s => s.id === Progress.project.starter);
+
+  function projectCard() {
+    const st = starterOf();
+    return `
+      <div class="card" style="margin:18px 0">
+        <h3 style="margin-top:0">🛠️ Your project</h3>
+        ${st ? `<p style="margin:0 0 12px">${st.emoji} <b>${esc(Progress.project.name || st.name)}</b> · started from the ${esc(st.name)} starter</p>`
+             : `<p style="margin:0 0 12px">You haven't picked a starter yet. Choose one of three apps to build.</p>`}
+        <div class="row">
+          <a class="btn primary small" href="#/project">${st ? 'Open workspace' : 'Pick a starter'}</a>
+        </div>
+      </div>
+      ${pic('stackLayers', 'One app, every layer you learned. Each unit adds a layer and has a 🛠️ milestone the app checks for you.')}`;
+  }
+
+  function copyText(text, btn) {
+    const done = () => { const t = btn.textContent; btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = t; }, 1500); };
+    const fallback = () => {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) { /* user can select manually */ }
+      ta.remove();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
+    else fallback();
+  }
+
+  function downloadText(text, filename) {
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/html' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  function starterPicker() {
+    const C = course(CAP);
+    render(`
+      <div class="crumbs"><a href="#/course/${CAP}">${esc(C.title)}</a> › Pick a starter</div>
+      <h1>Pick your capstone project</h1>
+      <p class="muted">Each starter is a small working app with TODO comments showing what to add in each unit. You'll make it your own — the finished examples are just for ideas.</p>
+      <div class="grid cols-3">
+        ${C.starters.map(st => `
+          <div class="card stack">
+            <div style="font-size:2.2rem;line-height:1">${st.emoji}</div>
+            <h3 style="margin:0">${esc(st.name)}</h3>
+            <p class="small muted" style="margin:0">${esc(st.blurb)}</p>
+            <div class="row">
+              <button class="btn primary small" data-pick="${st.id}" type="button">Start this one</button>
+              <a class="btn small" href="#/example/${st.id}">👀 Finished example</a>
+            </div>
+          </div>`).join('')}
+      </div>`, { title: 'Pick a starter' });
+    app.querySelectorAll('[data-pick]').forEach(b => b.addEventListener('click', () => {
+      const st = C.starters.find(s => s.id === b.dataset.pick);
+      Progress.updateProject({ starter: st.id, code: st.starter, milestones: {} });
+      location.hash = '#/project/0';
+    }));
+  }
+
+  function workspace(u) {
+    const C = course(CAP);
+    const st = starterOf();
+    if (!st) return starterPicker();
+    if (u === null || isNaN(u) || u < 0 || u >= C.units.length) {
+      u = C.units.findIndex((_, i) => !milestoneDone(CAP, i));
+      if (u < 0) u = SHIP_UNIT;
+    }
+    const unit = C.units[u];
+    const ship = u === SHIP_UNIT;
+    const reqs = ship ? C.requirements : unitReqs(CAP, u);
+    render(`
+      <div class="crumbs"><a href="#/course/${CAP}">${esc(C.title)}</a> › Project workspace</div>
+      <h1>${st.emoji} ${esc(Progress.project.name || st.name)}</h1>
+      <div class="row" role="tablist" aria-label="Milestones" style="margin-bottom:12px">
+        ${C.units.map((un, i) => `<a class="btn small ${i === u ? 'primary' : ''}" href="#/project/${i}" ${i === u ? 'aria-current="page"' : ''}>${milestoneDone(CAP, i) ? '✓' : i + 1 + '.'} ${esc(un.title.split(':')[0])}</a>`).join('')}
+      </div>
+      <div class="callout">
+        <b>🛠️ Unit ${u + 1} milestone:</b> ${unit.milestone}
+        ${!unitUnlocked(CAP, u) ? `<div class="small" style="margin-top:6px">🔒 You can work on this now, but Unit ${u + 1}'s lessons open after you finish Unit ${u}.</div>` : ''}
+        <div id="msDone" class="small" style="margin-top:6px">${milestoneDone(CAP, u) ? '✅ Milestone complete!' : ''}</div>
+      </div>
+      ${ship ? `
+        <div class="card stack" id="shipCard">
+          <h3 style="margin:0">🚀 Launch checklist</h3>
+          ${C.selfReview.map((t, i) => `<label class="radio-opt"><input type="checkbox" data-self="${i}" ${Progress.project.self[i] ? 'checked' : ''}><span>${esc(t)}</span></label>`).join('')}
+          <div>
+            <label class="field" for="liveUrl">Live link (GitHub Pages)</label>
+            <input class="input" id="liveUrl" type="url" inputmode="url" placeholder="https://your-username.github.io/your-app/" value="${esc(Progress.project.url)}">
+            <div class="small muted" id="urlHelp" style="margin-top:4px"></div>
+          </div>
+          <div>
+            <label class="field" for="projName">Project name (shown on your certificate)</label>
+            <input class="input" id="projName" placeholder="${esc(st.name)}" value="${esc(Progress.project.name)}">
+          </div>
+        </div>` : ''}
+      <div id="pg"></div>
+      <div class="row">
+        <button class="btn small" id="copyCode" type="button">📋 Copy code</button>
+        <button class="btn small" id="dlCode" type="button">⬇ Download index.html</button>
+        <a class="btn small" href="#/example/${st.id}">👀 Finished example</a>
+        <span class="spacer"></span>
+        <button class="btn small" id="switchStarter" type="button">Switch starter</button>
+      </div>
+      <p class="small muted">Your code saves automatically on this device. ${ship ? 'Use “Check everything” to run all requirements before your Project Review.' : ''}</p>
+      <div class="row" style="margin-top:16px">
+        <a class="btn" href="#/lesson/${CAP}/${u}/0">📖 Unit ${u + 1} lessons</a>
+        <span class="spacer"></span>
+        <a class="btn primary" id="nextStep" href="#/quiz/${CAP}/${u}">${quizPassed(CAP, u) ? (u < SHIP_UNIT ? `Unit ${u + 2} →` : 'Project review →') : `Unit ${u + 1} pop quiz →`}</a>
+      </div>`, { wide: true, title: 'Project workspace' });
+
+    // next step button depends on progress
+    const nextBtn = document.getElementById('nextStep');
+    const refreshNext = () => {
+      if (!quizPassed(CAP, u)) { nextBtn.href = `#/quiz/${CAP}/${u}`; return; }
+      nextBtn.href = u < SHIP_UNIT ? `#/lesson/${CAP}/${u + 1}/0` : `#/test/${CAP}`;
+    };
+    refreshNext();
+
+    let saveTimer;
+    const pg = playground({
+      code: Progress.project.code, lang: 'react', title: 'Your project — index.html',
+      tests: reqs, checkLabel: ship ? '✓ Check everything' : '✓ Check milestone', maxHeight: 720,
+      resetCode: st.starter,
+      onChange: v => { clearTimeout(saveTimer); saveTimer = setTimeout(() => Progress.updateProject({ code: v }), 400); },
+      onResult: res => {
+        if (!ship && res.passed) {
+          Progress.setMilestone(u);
+          document.getElementById('msDone').innerHTML = `✅ Milestone complete! ${quizPassed(CAP, u) ? '' : `Next: take the <a href="#/quiz/${CAP}/${u}">Unit ${u + 1} pop quiz</a>.`}`;
+          refreshNext();
+        } else if (!ship) {
+          const left = res.results.filter(r => !r.pass).length;
+          document.getElementById('msDone').textContent = `${left} requirement${left === 1 ? '' : 's'} to go — see the hints under the preview.`;
+        }
+      }
+    });
+    document.getElementById('pg').appendChild(pg.el);
+
+    document.getElementById('copyCode').addEventListener('click', e => copyText(pg.value, e.currentTarget));
+    document.getElementById('dlCode').addEventListener('click', () => downloadText(pg.value, 'index.html'));
+    document.getElementById('switchStarter').addEventListener('click', e => {
+      if (!confirmTap(e.currentTarget, 'Tap again: this replaces your code')) return;
+      Progress.updateProject({ starter: '', code: '', milestones: {} });
+      starterPicker();
+    });
+
+    if (ship) {
+      const shipStatus = () => {
+        const ok = selfDone(CAP);
+        const url = Progress.project.url;
+        document.getElementById('urlHelp').textContent = !url ? 'Paste the address of your live app.' : isUrl(url) ? '✓ Looks good.' : 'This should start with https:// — copy it from your browser\'s address bar.';
+        document.getElementById('msDone').textContent = ok ? '✅ Launch checklist complete!' : '';
+        refreshNext();
+      };
+      app.querySelectorAll('[data-self]').forEach(cb => cb.addEventListener('change', () => {
+        Progress.updateProject({ self: { ...Progress.project.self, [cb.dataset.self]: cb.checked } });
+        shipStatus();
+      }));
+      document.getElementById('liveUrl').addEventListener('input', e => { Progress.updateProject({ url: e.target.value.trim() }); shipStatus(); });
+      document.getElementById('projName').addEventListener('input', e => Progress.updateProject({ name: e.target.value.trim() }));
+      shipStatus();
+    }
+  }
+
+  function exampleView(id) {
+    const C = course(CAP);
+    const st = C.starters.find(s => s.id === id);
+    if (!st) return notFound();
+    render(`
+      <div class="crumbs"><a href="#/course/${CAP}">${esc(C.title)}</a> › <a href="#/project">Workspace</a> › Finished example</div>
+      <h1>${st.emoji} Finished example: ${esc(st.name)}</h1>
+      <p class="muted">One way to finish this project. It passes every requirement. Borrow ideas and techniques, but give your version its own content, colors and features. Changes here are not saved.</p>
+      <div id="pg"></div>
+      <a class="btn" href="#/project">← Back to my workspace</a>`, { wide: true, title: 'Finished example' });
+    document.getElementById('pg').appendChild(playground({ code: st.example, lang: 'react', title: 'Finished example (read and experiment)', maxHeight: 720 }).el);
+  }
+
+  function projectReview(c) {
+    const C = course(c);
+    if (!testUnlocked(c)) {
+      return render(`<div class="card center"><h1>🔒 Project review locked</h1><p>Finish all 5 units — lessons, pop quizzes and milestones — to unlock your Project Review.</p><a class="btn primary" href="#/course/${c}">Back to course</a></div>`, { title: 'Locked' });
+    }
+    const st = starterOf();
+    const P = Progress.project;
+    render(`
+      <div class="crumbs"><a href="#/course/${c}">${esc(C.title)}</a> › Project review</div>
+      <h1>🎓 Project review: ${esc(P.name || st.name)}</h1>
+      <div class="card">
+        <p style="margin-top:0">Your app is checked against all <b>${C.requirements.length}</b> requirements, plus your launch checklist and live link. Everything must pass. If something fails, fix it in the <a href="#/project/${SHIP_UNIT}">workspace</a> and run the review again.</p>
+        <button class="btn primary" id="runReview" type="button">▶ Run project review</button>
+      </div>
+      <div id="result"></div>
+      <h2>Your app</h2>
+      <div class="playground"><div class="pg-out" style="border-top:0"><div class="frame-holder" id="reviewFrame" style="display:flex;flex-direction:column;flex:1;min-height:420px"></div></div></div>
+      <h2>Requirements</h2>
+      <ul class="checks card" id="reqList" style="border-top:1px solid var(--border)">${C.requirements.map(r => `<li>${mdInline(r.name)}</li>`).join('')}</ul>
+      <h2>Launch checklist</h2>
+      <ul class="checks card" style="border-top:1px solid var(--border)">
+        ${C.selfReview.map((t, i) => `<li class="${P.self[i] ? 'pass' : 'fail'}">${esc(t)}</li>`).join('')}
+        <li class="${isUrl(P.url) ? 'pass' : 'fail'}">Live link: ${P.url ? `<a href="${esc(P.url)}" target="_blank" rel="noopener">${esc(P.url)}</a>` : '<i>not added yet</i>'}</li>
+      </ul>`, { wide: true, title: 'Project review' });
+
+    document.getElementById('runReview').addEventListener('click', async e => {
+      const btn = e.currentTarget;
+      btn.disabled = true; btn.textContent = 'Checking…';
+      const res = await Runner.run({ lang: 'react', code: P.code, tests: C.requirements, container: document.getElementById('reviewFrame') });
+      const list = document.getElementById('reqList');
+      list.innerHTML = C.requirements.map((r, i) => {
+        const ok = res.results[i] && res.results[i].pass;
+        return `<li class="${ok ? 'pass' : 'fail'}">${mdInline(r.name)}${ok ? '' : `<div class="muted small">💡 ${mdInline(r.hint)}</div>`}</li>`;
+      }).join('');
+      const reqPass = res.results.filter(r => r.pass).length;
+      const total = C.requirements.length + C.selfReview.length + 1;
+      const passed = reqPass + C.selfReview.filter((_, i) => P.self[i]).length + (isUrl(P.url) ? 1 : 0);
+      const pct = Math.round(passed / total * 100);
+      const ok = passed === total;
+      Progress.setTest(c, ok ? 100 : Math.min(pct, TEST_PASS - 1));
+      document.getElementById('result').innerHTML = `
+        <div class="card center" style="margin-top:14px;border-color:var(${ok ? '--good' : '--bad'})">
+          <div class="score-big" style="color:var(${ok ? '--good' : '--bad'})">${passed}/${total}</div>
+          <p>${ok ? 'Every requirement passes. Your app is built, live and ready for your resume! 🎉' : `${total - passed} item(s) still need work. See the hints below, fix them in the workspace, then run the review again.`}</p>
+          ${ok ? `<a class="btn primary" href="#/cert/${c}">🏆 View your capstone certificate</a>` : `<a class="btn primary" href="#/project/${SHIP_UNIT}">Open workspace</a>`}
+        </div>`;
+      btn.disabled = false; btn.textContent = '↺ Run again';
+      document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }
+
   function cert(c) {
     const C = course(c);
     if (!C) return notFound();
     const t = Progress.testScore(c);
     if (!testPassed(c)) {
-      return render(`<div class="card center"><h1>No certificate yet</h1><p>Pass the ${esc(C.title)} final test with ${TEST_PASS}% to earn it.</p><a class="btn primary" href="#/course/${c}">Back to course</a></div>`, { title: 'Certificate' });
+      return render(`<div class="card center"><h1>No certificate yet</h1><p>${C.project ? 'Pass the Project Review to earn it.' : `Pass the ${esc(C.title)} final test with ${TEST_PASS}% to earn it.`}</p><a class="btn primary" href="#/course/${c}">Back to course</a></div>`, { title: 'Certificate' });
     }
+    const P = Progress.project;
+    const projName = P.name || (C.project ? (C.starters.find(s => s.id === P.starter) || { name: 'My web app' }).name : '');
+    const resume = C.resume.replace('{name}', projName).replace('{url}', P.url || 'https://your-username.github.io/your-app/');
     const date = new Date(t.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
     render(`
       <div class="crumbs no-print"><a href="#/course/${c}">${esc(C.title)}</a> › Certificate</div>
@@ -506,14 +768,16 @@
         <h1>${esc(C.certTitle)}</h1>
         <p style="margin:.8em 0 0">This certifies that</p>
         <div class="name" id="certName">${esc(Progress.name || 'Your Name')}</div>
-        <p>has completed all 5 units and passed the final test with a score of <b>${t.best}%</b>,<br>demonstrating skills in ${esc(C.skills)}.</p>
+        ${C.project
+          ? `<p>has designed, built and launched <b>${esc(projName)}</b>, a web app meeting all ${C.requirements.length} capstone requirements,<br>demonstrating ${esc(C.skills)}.</p><p class="small" style="word-break:break-all">Live at ${esc(P.url)}</p>`
+          : `<p>has completed all 5 units and passed the final test with a score of <b>${t.best}%</b>,<br>demonstrating skills in ${esc(C.skills)}.</p>`}
         <p style="margin-bottom:0">${date} · CodePath</p>
       </div>
       <div class="card no-print" style="margin-top:14px">
         <h3 style="margin-top:0">📄 Put it on your resume</h3>
-        <p class="small">Under <i>Education &amp; Training</i> or <i>Certifications</i>:</p>
-        ${md('{{{\n' + C.resume + '\n}}}')}
-        <p class="small muted">Tip: pair it with a real project on GitHub (the Advanced course shows you how) so employers can see your code.</p>
+        <p class="small">${C.project ? 'Under <i>Projects</i>:' : 'Under <i>Education &amp; Training</i> or <i>Certifications</i>:'}</p>
+        ${md('{{{\n' + resume + '\n}}}')}
+        <p class="small muted">${C.project ? 'Tip: pin this repository on your GitHub profile and link it from your resume and LinkedIn.' : 'Tip: pair it with a real project on GitHub (the Capstone course walks you through it) so employers can see your code.'}</p>
       </div>`, { title: 'Certificate' });
     const nm = document.getElementById('nm');
     nm.addEventListener('input', () => { Progress.name = nm.value.trim(); document.getElementById('certName').textContent = nm.value.trim() || 'Your Name'; });
@@ -578,13 +842,17 @@
       case 'quiz': quiz(c, n(a)); break;
       case 'test': test(c); break;
       case 'cert': cert(c); break;
+      case 'project': workspace(c === undefined ? null : n(c)); break;
+      case 'example': exampleView(c); break;
       case 'profile': profile(); break;
       default: notFound();
     }
-    const key = view === 'lesson' || view === 'recap' || view === 'quiz' || view === 'test' || view === 'cert' ? 'course/' + c : (view || '');
+    const key = view === 'project' || view === 'example' ? 'course/capstone'
+      : view === 'lesson' || view === 'recap' || view === 'quiz' || view === 'test' || view === 'cert' ? 'course/' + c : (view || '');
     document.querySelectorAll('.topnav a, .bottomnav a').forEach(a => {
       const href = a.getAttribute('href').replace('#/', '');
-      const active = href === key || (href === 'courses' && /^course/.test(key)) || (href === '' && key === '');
+      const inTop = !!a.closest('.topnav');
+      const active = href === key || (href === 'courses' && /^course/.test(key) && !(inTop && key === 'course/capstone')) || (href === '' && key === '');
       a.classList.toggle('active', active);
     });
     app.focus({ preventScroll: true });

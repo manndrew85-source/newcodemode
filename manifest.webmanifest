@@ -1,7 +1,7 @@
 {
   "name": "CodePath — Learn to Code",
   "short_name": "CodePath",
-  "description": "Learn HTML, CSS and JavaScript with beginner, intermediate and advanced courses, quizzes, tests and a live code editor.",
+  "description": "Learn HTML, CSS, JavaScript and React with illustrated courses, quizzes, tests, a live code editor and a capstone project.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

@@ -36,13 +36,10 @@ const Pics = (() => {
     ].join(''), 'Computer with a code editor and a browser'),
 
     roadmap: svg(640, 170, [
-      L(70, 85, 570, 85, 'line dash'),
-      C(70, 85, 34, 'd'), T(70, 85, 'Intro', 'small bold'),
-      C(237, 85, 46, 'b'), T(237, 78, 'Beginner', 'small bold'), T(237, 96, 'HTML + CSS', 'small'),
-      C(403, 85, 46, 'a'), T(403, 78, 'Intermediate', 'small bold'), T(403, 96, 'JavaScript', 'small'),
-      C(570, 85, 46, 'c'), T(570, 78, 'Advanced', 'small bold'), T(570, 96, 'JS apps', 'small'),
-      T(237, 150, '5 units + test', 'small muted'), T(403, 150, '5 units + test', 'small muted'), T(570, 150, '5 units + test', 'small muted'),
-      T(70, 150, 'setup', 'small muted')
+      L(50, 75, 590, 75, 'line dash'),
+      ...[['Intro', 'setup', 'd', 'box'], ['Beginner', 'HTML + CSS', 'b'], ['Intermediate', 'JavaScript', 'a'], ['Advanced', 'JS apps', 'c'], ['React', 'components', 'a'], ['Capstone', 'your app 🚀', 'd']].map(([t, sub, cls], i) =>
+        C(50 + i * 108, 75, 40, cls) + T(50 + i * 108, 75, t, 'small bold') + T(50 + i * 108, 138, sub, 'small muted')),
+      T(320, 162, 'Each course: 5 units + final test. Capstone: build and launch a real app.', 'small muted')
     ].join(''), 'Course roadmap'),
 
     unitFlow: svg(640, 110, [
@@ -433,7 +430,116 @@ const Pics = (() => {
       T(247, 170, 'stage', 'small muted'), T(409, 170, 'save a snapshot', 'small muted'), T(566, 170, 'upload to GitHub', 'small muted'),
       T(320, 40, 'Git = save points for code.  GitHub = your public portfolio online.', 'small bold'),
       T(320, 215, 'GitHub Pages can then host your project as a real website 🌐', 'small muted')
-    ].join(''), 'Git workflow')
+    ].join(''), 'Git workflow'),
+
+    // ---------- React ----------
+    reactIdea: svg(640, 230, [
+      R(20, 30, 250, 170, 'box2', 12), T(145, 52, 'Plain JavaScript', 'bold'),
+      T(145, 90, '1. find the element', 'small'), T(145, 115, '2. change its text', 'small'), T(145, 140, '3. remember to update', 'small'), T(145, 165, 'every other place too 😵', 'small'),
+      R(370, 30, 250, 170, 'a', 12), T(495, 52, 'React', 'bold'),
+      T(495, 90, 'describe what the screen', 'small'), T(495, 112, 'should look like for', 'small'), T(495, 134, 'the current data…', 'small'), T(495, 165, '…React updates it for you ✨', 'small bold'),
+      T(320, 115, 'vs', 'big muted'),
+      T(320, 220, 'React = UI as a function of your data', 'small muted')
+    ].join(''), 'Imperative JavaScript vs declarative React'),
+
+    componentTree: svg(640, 260, [
+      B(250, 10, 140, 44, '<App />', 'd', 'mono bold'),
+      A(290, 54, 140, 92), A(320, 54, 320, 92), A(350, 54, 500, 92),
+      B(70, 94, 140, 44, '<Header />', 'a', 'mono small bold'), B(250, 94, 140, 44, '<TodoList />', 'b', 'mono small bold'), B(430, 94, 140, 44, '<Footer />', 'a', 'mono small bold'),
+      A(290, 138, 230, 176), A(350, 138, 410, 176),
+      B(160, 178, 140, 40, '<TodoItem />', 'c', 'mono small'), B(340, 178, 140, 40, '<TodoItem />', 'c', 'mono small'),
+      T(320, 245, 'Small reusable pieces (components) snap together into an app', 'small muted')
+    ].join(''), 'A tree of React components'),
+
+    jsxVsHtml: svg(640, 230, [
+      R(20, 20, 290, 160, 'box2', 12), T(165, 42, 'HTML', 'bold'),
+      T(40, 80, '<div class="card">', 'mono small', 'start'), T(40, 108, '<label for="x">', 'mono small', 'start'), T(40, 136, '<img src="a.png">', 'mono small', 'start'),
+      R(330, 20, 290, 160, 'a', 12), T(475, 42, 'JSX (in React)', 'bold ta'),
+      T(345, 80, '<div className="card">', 'mono small', 'start'), T(345, 108, '<label htmlFor="x">', 'mono small', 'start'), T(345, 136, '<img src="a.png" />', 'mono small', 'start'),
+      T(320, 206, 'JSX looks like HTML, but: className, htmlFor, close every tag, { } for JavaScript', 'small muted')
+    ].join(''), 'HTML vs JSX differences'),
+
+    propsFlow: svg(640, 250, [
+      R(200, 10, 240, 60, 'd', 12), T(320, 32, 'Parent', 'bold'), T(320, 54, '<Card title="Hi" likes={3} />', 'mono small'),
+      A(320, 70, 320, 120, 'line-a'), T(335, 96, 'props flow DOWN', 'small ta bold', 'start'),
+      R(180, 122, 280, 90, 'a', 12), T(320, 144, 'function Card({ title, likes })', 'mono small bold'), T(320, 172, '<h2>{title}</h2>  ❤️ {likes}', 'mono small'), T(320, 196, 'read-only inside the child', 'small muted'),
+      T(320, 236, 'Props are like function arguments for components', 'small muted')
+    ].join(''), 'Props pass data from parent to child'),
+
+    keysList: svg(640, 220, [
+      T(20, 22, 'todos.map(t => <li key={t.id}>{t.text}</li>)', 'mono small', 'start'),
+      ...[['id 1', 'Gym'], ['id 2', 'Read'], ['id 3', 'Code']].map(([k, v], i) =>
+        B(20, 45 + i * 52, 110, 40, 'key=' + k.split(' ')[1], 'b', 'mono small bold') + A(130, 65 + i * 52, 170, 65 + i * 52) + B(172, 45 + i * 52, 150, 40, '<li>' + v + '</li>', 'a', 'mono small')),
+      T(480, 80, 'Keys are name tags.', 'small bold'), T(480, 105, 'They let React tell which', 'small'), T(480, 128, 'item changed, moved or', 'small'), T(480, 151, 'was deleted.', 'small'),
+      T(480, 190, 'Use a stable id — not Math.random()', 'small muted')
+    ].join(''), 'Keys identify list items'),
+
+    stateCycle: svg(640, 260, [
+      B(240, 10, 160, 50, 'state: count = 0', 'a', 'mono small bold'), A(400, 35, 500, 90),
+      B(450, 92, 170, 50, 'React renders UI', 'c', 'small bold'), A(530, 142, 420, 196),
+      B(240, 198, 180, 50, '👆 user clicks', 'b', 'small bold'), A(240, 223, 130, 150),
+      B(20, 92, 200, 56, 'setCount(count + 1)', 'd', 'mono small bold'), A(120, 92, 240, 40),
+      T(320, 125, '♻️ the render loop', 'small muted')
+    ].join(''), 'State changes trigger a re-render'),
+
+    controlledInput: svg(640, 210, [
+      R(20, 40, 220, 120, 'a', 12), T(130, 64, 'state', 'bold'), T(130, 100, 'name = "Ava"', 'mono small'),
+      A(240, 80, 400, 80, 'line-a'), T(320, 66, 'value={name}', 'mono small ta'),
+      R(402, 50, 218, 60, 'box2', 10), T(511, 80, '[ Ava|        ]', 'mono'),
+      A(400, 130, 242, 130), T(320, 148, 'onChange → setName(e.target.value)', 'mono small'),
+      T(320, 195, 'The input always shows state, and typing updates state', 'small muted')
+    ].join(''), 'A controlled input'),
+
+    effectLifecycle: svg(640, 230, [
+      T(20, 20, 'time →', 'small muted', 'start'), A(70, 20, 620, 20),
+      B(20, 50, 150, 50, '1. render', 'a', 'small bold'), A(170, 75, 200, 75),
+      B(202, 50, 180, 50, '2. screen updates', 'c', 'small bold'), A(382, 75, 412, 75),
+      B(414, 50, 206, 50, '3. useEffect runs', 'b', 'small bold'),
+      T(517, 125, 'e.g. fetch data, save to', 'small'), T(517, 145, 'localStorage, start a timer', 'small'),
+      T(320, 185, '[ ] = run once  ·  [x] = when x changes  ·  no array = every render (careful!)', 'small mono'),
+      T(320, 212, 'Effects are for talking to the world OUTSIDE React', 'small muted')
+    ].join(''), 'When useEffect runs'),
+
+    liftState: svg(640, 240, [
+      R(200, 10, 240, 64, 'd', 12), T(320, 32, '<App>', 'mono bold'), T(320, 54, 'const [items, setItems] = …', 'mono small'),
+      A(260, 74, 150, 130), A(380, 74, 490, 130), T(170, 100, 'items', 'mono small ta'), T(470, 100, 'setItems', 'mono small ta'),
+      B(60, 132, 200, 50, '<List items={…} />', 'a', 'mono small'), B(380, 132, 220, 50, '<AddForm onAdd={…} />', 'b', 'mono small'),
+      T(320, 222, 'Two siblings need the same data? Keep it in their shared parent.', 'small muted')
+    ].join(''), 'Lifting state up to a shared parent'),
+
+    viteFolder: svg(640, 260, [
+      code(20, 20, 280, ['my-app/', '├── index.html', '├── package.json', '└── src/', '    ├── main.jsx', '    ├── App.jsx', '    └── App.css'], 28),
+      T(330, 45, 'npm create vite@latest my-app', 'mono small', 'start'), T(330, 75, 'cd my-app', 'mono small', 'start'), T(330, 105, 'npm install', 'mono small', 'start'), T(330, 135, 'npm run dev', 'mono small', 'start'),
+      T(330, 175, '→ opens http://localhost:5173', 'small tc bold', 'start'),
+      T(330, 205, 'npm run build → dist/ folder', 'mono small', 'start'), T(330, 230, 'ready to deploy', 'small muted', 'start')
+    ].join(''), 'A React project made with Vite'),
+
+    // ---------- Capstone ----------
+    stackLayers: svg(640, 250, [
+      R(60, 20, 520, 46, 'd', 10), T(320, 43, 'React — components, state, effects', 'bold'),
+      R(60, 76, 520, 46, 'a', 10), T(320, 99, 'JavaScript — logic, arrays, events, localStorage, fetch', 'bold'),
+      R(60, 132, 520, 46, 'c', 10), T(320, 155, 'CSS — colors, layout, responsive design', 'bold'),
+      R(60, 188, 520, 46, 'b', 10), T(320, 211, 'HTML — structure and meaning', 'bold')
+    ].join(''), 'Every layer you learned, in one project'),
+
+    userStories: svg(640, 220, [
+      R(20, 20, 600, 60, 'a', 12), T(40, 50, 'As a  [who]  I want to  [do something]  so that  [why].', 'bold', 'start'),
+      R(20, 100, 290, 100, 'box2', 12), T(165, 125, 'Habit tracker example', 'small bold'), T(165, 152, 'As a student I want to tick', 'small'), T(165, 172, 'off habits so I see my streak', 'small'),
+      R(330, 100, 290, 100, 'box2', 12), T(475, 125, 'Becomes a feature', 'small bold'), T(475, 152, '✅ checkbox per habit', 'small'), T(475, 172, '🔥 streak counter', 'small')
+    ].join(''), 'Writing user stories'),
+
+    designTokens: svg(640, 220, [
+      ...[['--bg', 'box'], ['--surface', 'box2'], ['--accent', 'a'], ['--accent-2', 'b'], ['--ok', 'c']].map(([n, c], i) =>
+        R(20 + i * 124, 20, 110, 70, c, 10) + T(75 + i * 124, 110, n, 'mono small')),
+      T(20, 150, 'Aa  Display font', 'big', 'start'), T(250, 150, 'Aa  Body font', '', 'start'), T(450, 150, '8 · 16 · 24 · 32', 'mono small', 'start'),
+      T(320, 195, 'Decide colors, fonts and spacing once as CSS variables, then reuse them everywhere', 'small muted')
+    ].join(''), 'Design tokens as CSS variables'),
+
+    shipChecklist: svg(640, 250, [
+      ...['Works on a phone (390px wide)', 'No errors in the console', 'Keyboard and screen-reader friendly', 'Data survives a refresh', 'README with screenshot', 'Live on GitHub Pages'].map((t, i) =>
+        R(40, 16 + i * 38, 26, 26, 'c', 6) + T(53, 29 + i * 38, '✓', 'bold') + T(80, 29 + i * 38, t, '', 'start')),
+      R(440, 60, 170, 130, 'a', 14), T(525, 105, '🚀', 'big'), T(525, 140, 'Ship it!', 'bold'), T(525, 165, 'then add to resume', 'small muted')
+    ].join(''), 'Launch checklist')
   };
 
   return {

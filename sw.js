@@ -1,5 +1,5 @@
 // Service worker: caches the app so it works offline. Bump VERSION when files change.
-const VERSION = 'codepath-v1';
+const VERSION = 'codepath-v2';
 const FILES = [
   './',
   './index.html',
@@ -13,6 +13,11 @@ const FILES = [
   './js/content/beginner.js',
   './js/content/intermediate.js',
   './js/content/advanced.js',
+  './js/content/react.js',
+  './js/content/capstone.js',
+  './vendor/react-18.3.1.development.js',
+  './vendor/react-dom-18.3.1.development.js',
+  './vendor/babel-standalone-7.24.7.min.js',
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png'

@@ -1,11 +1,13 @@
 // Progress is saved in this browser (localStorage). Everything still works if storage is blocked.
 const Progress = (() => {
   const KEY = 'codepath-progress-v1';
-  let state = { lessons: {}, quizzes: {}, tests: {}, drafts: {}, name: '', theme: '' };
+  const emptyProject = () => ({ starter: '', code: '', milestones: {}, self: {}, url: '', name: '' });
+  let state = { lessons: {}, quizzes: {}, tests: {}, drafts: {}, name: '', theme: '', project: emptyProject() };
 
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (saved) state = Object.assign(state, saved);
+    state.project = Object.assign(emptyProject(), state.project || {});
   } catch (e) { /* storage unavailable */ }
 
   function save() {
@@ -34,7 +36,12 @@ const Progress = (() => {
     get name() { return state.name; },
     set name(v) { state.name = v; save(); },
     get theme() { return state.theme; },
+    // Capstone project: { starter, code, milestones: {unit: true}, self: {i: true}, url, name }
+    get project() { return state.project; },
+    updateProject(changes) { Object.assign(state.project, changes); save(); },
+    setMilestone(u) { state.project.milestones[u] = true; save(); },
+    resetProject() { state.project = emptyProject(); delete state.tests.capstone; save(); },
     set theme(v) { state.theme = v; save(); },
-    reset() { state = { lessons: {}, quizzes: {}, tests: {}, drafts: {}, name: state.name, theme: state.theme }; save(); }
+    reset() { state = { lessons: {}, quizzes: {}, tests: {}, drafts: {}, name: state.name, theme: state.theme, project: emptyProject() }; save(); }
   };
 })();

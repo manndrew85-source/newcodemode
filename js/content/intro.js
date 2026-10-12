@@ -6,12 +6,14 @@ const INTRO = {
       heading: 'What you will be doing',
       body: `
 <p>You're going to learn how to build websites and web apps — the same skills used by front-end and full-stack developers. You'll go from "I've never written code" to building interactive apps with JavaScript.</p>
-<p>The app is split into <b>three courses</b>. Each has <b>5 units</b>. Every unit ends with a <b>recap</b> and a <b>pop quiz</b>, and every course ends with a <b>final test</b> (half multiple-choice, half fixing broken code — just like real debugging on the job).</p>
+<p>The app has <b>four courses</b> and a <b>capstone project</b>. Each has <b>5 units</b>. Every unit ends with a <b>recap</b> and a <b>pop quiz</b>. Every course ends with a <b>final test</b> (half multiple-choice, half fixing broken code — just like real debugging on the job). The capstone ends with a <b>project review</b> of an app you build and put online.</p>
 <div class="table-wrap"><table class="simple">
 <tr><th>Course</th><th>You'll learn</th><th>You'll be able to…</th></tr>
 <tr><td><b>Beginner</b></td><td>HTML &amp; CSS</td><td>Build and style your own web pages, including a personal profile page.</td></tr>
 <tr><td><b>Intermediate</b></td><td>JavaScript fundamentals</td><td>Write programs with variables, decisions, loops and functions, and make pages react to clicks.</td></tr>
 <tr><td><b>Advanced</b></td><td>Modern JavaScript</td><td>Build a real app (a to-do list), load data from the internet, organize code, debug, test, and publish to GitHub.</td></tr>
+<tr><td><b>React</b></td><td>The React library</td><td>Build interfaces from components with props, state and effects — the most requested front-end job skill.</td></tr>
+<tr><td><b>Capstone</b></td><td>Everything together</td><td>Plan, build, polish and launch your own app (portfolio, habit tracker or recipe box) and put the live link on your resume.</td></tr>
 </table></div>`,
       pic: 'roadmap',
       cap: 'Your learning path. Take the courses in order — each one builds on the last.'
@@ -86,15 +88,17 @@ const INTRO = {
 <p>Employers care about two things: <b>what you know</b> and <b>proof you can do it</b>. Here's how to get both from this app:</p>
 <ol>
 <li><b>Certificates</b> — pass each final test and print/save your certificate as a PDF.</li>
-<li><b>Projects</b> — the Beginner course ends with a profile page, and the Advanced course has you build a to-do app. Rebuild these in VS Code and publish them on GitHub (Advanced Unit 5 shows you how).</li>
+<li><b>Projects</b> — the Beginner course ends with a profile page, the Advanced course has you build a to-do app, and the <b>Capstone</b> walks you through building and launching a complete React app with a live link.</li>
 <li><b>Resume lines</b> — list skills honestly. For example:</li>
 </ol>
 {{{
 SKILLS
-HTML5, CSS3 (Flexbox, responsive design), JavaScript (ES6+),
-DOM manipulation, Fetch API, Git & GitHub, Chrome DevTools
+HTML5, CSS3 (Flexbox, Grid, responsive design), JavaScript (ES6+),
+React (hooks, components), DOM manipulation, Fetch API,
+Git & GitHub, Chrome DevTools
 
 PROJECTS
+Capstone App — React app, live on GitHub Pages (link)
 Personal Profile Page — responsive site built with HTML & CSS
 To-Do App — JavaScript app with add/complete/delete and saved data
 }}}
