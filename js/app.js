@@ -615,7 +615,7 @@
       <div id="pg"></div>
       <div class="row">
         <button class="btn small" id="copyCode" type="button">📋 Copy code</button>
-        <button class="btn small" id="dlCode" type="button">⬇ Download index.html</button>
+        ${window.self === window.top ? '<button class="btn small" id="dlCode" type="button">⬇ Download index.html</button>' : ''}
         <a class="btn small" href="#/example/${st.id}">👀 Finished example</a>
         <span class="spacer"></span>
         <button class="btn small" id="switchStarter" type="button">Switch starter</button>
@@ -655,7 +655,8 @@
     document.getElementById('pg').appendChild(pg.el);
 
     document.getElementById('copyCode').addEventListener('click', e => copyText(pg.value, e.currentTarget));
-    document.getElementById('dlCode').addEventListener('click', () => downloadText(pg.value, 'index.html'));
+    const dl = document.getElementById('dlCode');
+    if (dl) dl.addEventListener('click', () => downloadText(pg.value, 'index.html'));
     document.getElementById('switchStarter').addEventListener('click', e => {
       if (!confirmTap(e.currentTarget, 'Tap again: this replaces your code')) return;
       Progress.updateProject({ starter: '', code: '', milestones: {} });
