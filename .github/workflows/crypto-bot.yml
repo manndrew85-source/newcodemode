@@ -1,0 +1,31 @@
+name: Crypto outlook bot
+
+on:
+  schedule:
+    # Both DST-possible UTC times; bot.main skips unless the ET hour matches the mode.
+    - cron: "0 13,14 * * *"   # 09:00 ET pre-open
+    - cron: "0 16,17 * * *"   # 12:00 ET update
+    - cron: "0 20,21 * * *"   # 16:00 ET update
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Report mode
+        default: preopen
+        type: choice
+        options: [preopen, update]
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r bot/requirements.txt
+      - run: python -m bot.main --mode "$MODE" $FORCE
+        env:
+          MODE: ${{ github.event.inputs.mode || (github.event.schedule == '0 13,14 * * *' && 'preopen' || 'update') }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && '--force' || '' }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
